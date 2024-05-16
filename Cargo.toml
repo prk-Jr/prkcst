@@ -2,6 +2,11 @@
 name = "prkcst"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+keywords = ["DSA", "Algorithms", "Sorting"]
+categories = ["Data structures", "Algorithms"]
+repository = "https://github.com/prk-Jr/prkcst"
+description = "Command Line Shortcut"
 
 [dependencies]
 serde = { version = "1.0.202", features = ["derive"] }
