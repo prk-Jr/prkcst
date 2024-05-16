@@ -6,7 +6,6 @@ license = "MIT"
 keywords = [
     "Command line utiities",
     "Development tools",
-    "CLI",
     "Tool",
     "Command Line",
     "Terminal",
