@@ -3,8 +3,15 @@ name = "prkcst"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-keywords = ["DSA", "Algorithms", "Sorting"]
-categories = ["Data structures", "Algorithms"]
+keywords = [
+    "Command line utiities",
+    "Development tools",
+    "CLI",
+    "Tool",
+    "Command Line",
+    "Terminal",
+]
+categories = ["Command line utiities", "Development tools"]
 repository = "https://github.com/prk-Jr/prkcst"
 description = "Command Line Shortcut"
 
