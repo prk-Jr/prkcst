@@ -12,9 +12,9 @@ fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 1 {
-        println!("Usage: {} --list", args[0]);
-        println!("Usage: {} --add", args[0]);
-        println!("Usage: {} <alias> [args]", args[0]);
+        println!("Usage: prkcst --list");
+        println!("Usage: prkcst --add");
+        println!("Usage: prkcst <alias> [args]");
     }
 
     let commands = fetch_commands_from_file()?;
