@@ -2,6 +2,7 @@ use std::{
     env,
     fs::File,
     io::{self, BufReader},
+    path::PathBuf,
 };
 
 use commands::Command;
@@ -12,20 +13,21 @@ fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 1 {
-        println!("Usage: prkcst --list");
-        println!("Usage: prkcst --add");
-        println!("Usage: prkcst <alias> [args]");
-    }
-
-    let commands = fetch_commands_from_file()?;
-
-    if args.len() == 2 && args[1] == "--list" {
-        list_commands()?;
+        println!("Usage: prkcst --list [--global]");
+        println!("Usage: prkcst --add [--global]");
+        println!("Usage: prkcst <alias> [args] [--global]");
         return Ok(());
     }
 
-    if args.len() == 2 && args[1] == "--add" {
-        add_command()?;
+    let global_flag = args.iter().any(|arg| arg == "--global" || arg == "-g");
+
+    if args.len() >= 2 && args[1] == "--list" {
+        list_commands(global_flag)?;
+        return Ok(());
+    }
+
+    if args.len() >= 2 && args[1] == "--add" {
+        add_command(global_flag)?;
         return Ok(());
     }
 
@@ -33,9 +35,15 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
+    let commands = fetch_commands_from_file(global_flag)?;
+
     let alias = &args[1];
 
-    let args: Vec<&str> = args.iter().skip(2).map(|s| s.as_str()).collect();
+    let mut args: Vec<&str> = args.iter().skip(2).map(|s| s.as_str()).collect();
+
+    if global_flag {
+        args.remove(args.len() - 1);
+    }
 
     match find_command_by_alias(&commands, alias) {
         Some(commands) => {
@@ -47,7 +55,7 @@ fn main() -> io::Result<()> {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
                     format!(
-                        "Invalid arguments count, please proved exactly {} arguments",
+                        "Invalid arguments count, please provide exactly {} arguments",
                         args_required
                     ),
                 ));
@@ -71,7 +79,7 @@ fn main() -> io::Result<()> {
                 }
             }
         }
-        None => println!("Command does not exists"),
+        None => println!("Command does not exist"),
     }
 
     Ok(())
@@ -85,7 +93,7 @@ fn execute_command(cmd: &str, args: &[&str]) -> io::Result<()> {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!(
-                "Invalid arguments count, please proved exactly {} arguments",
+                "Invalid arguments count, please provide exactly {} arguments",
                 args.len()
             ),
         ));
@@ -122,7 +130,7 @@ fn find_command_by_alias<'a>(commands: &'a [Command], alias: &'a str) -> Option<
     None
 }
 
-fn add_command() -> io::Result<()> {
+fn add_command(global: bool) -> io::Result<()> {
     println!("Enter the alias for your command:");
 
     let mut alias = String::new();
@@ -149,33 +157,21 @@ fn add_command() -> io::Result<()> {
         }
 
         commands.push(command.to_owned());
-
-        if commands.len() == 0 {
-            return Ok(());
-        }
     }
 
-    let command = Command::new(alias, commands);
+    let command = Command::new(alias.clone(), commands.clone());
 
-    append_command_to_file(command)?;
-
-    Ok(())
-}
-
-fn append_command_to_file(command: Command) -> io::Result<()> {
-    let mut commands = fetch_commands_from_file()?;
-
-    commands.push(command);
-
-    let file = File::create("commands.json")?;
-
-    serde_json::to_writer_pretty(file, &commands)?;
+    if global {
+        append_command_to_file(command, true)?;
+    } else {
+        append_command_to_file(command, false)?;
+    }
 
     Ok(())
 }
 
-fn list_commands() -> io::Result<()> {
-    let commands = fetch_commands_from_file()?;
+fn list_commands(global: bool) -> io::Result<()> {
+    let commands = fetch_commands_from_file(global)?;
 
     if commands.is_empty() {
         println!("No commands available");
@@ -195,23 +191,58 @@ fn list_commands() -> io::Result<()> {
     Ok(())
 }
 
-fn fetch_commands_from_file() -> io::Result<Vec<Command>> {
-    let file = match File::open("commands.json") {
+fn fetch_commands_from_file(global: bool) -> io::Result<Vec<Command>> {
+    let local_path = "./commands.json"; // Local path relative to the current directory
+    let global_path = get_global_commands_path(); // Get the global commands path
+
+    let path: PathBuf = if global {
+        global_path.to_owned()
+    } else {
+        local_path.to_owned().into()
+    };
+
+    let file = match File::open(&path) {
         Ok(file) => file,
         Err(_) => {
-            let _ = File::create("commands.json");
+            // if global {
+            //     File::create(&global_path)?; // Create global file if it doesn't exist
+            // } else {
+            //     File::create(&local_path)?; // Create local file if it doesn't exist
+            // }
             return Ok(Vec::new());
         }
     };
 
     let reader = BufReader::new(file);
-
-    let commands = match serde_json::from_reader(reader) {
-        Ok(commands) => commands,
-        Err(_) => {
-            return Ok(Vec::new());
-        }
-    };
+    let commands = serde_json::from_reader(reader)?;
 
     Ok(commands)
+}
+
+fn append_command_to_file(command: Command, global: bool) -> io::Result<()> {
+    let local_path = "./commands.json"; // Local path relative to the current directory
+    let global_path = get_global_commands_path(); // Get the global commands path
+
+    let mut commands = fetch_commands_from_file(global)?;
+
+    commands.push(command);
+
+    let path: PathBuf = if global {
+        global_path.to_owned()
+    } else {
+        local_path.to_owned().into()
+    };
+
+    let file = File::create(&path)?;
+    serde_json::to_writer_pretty(file, &commands)?;
+
+    Ok(())
+}
+
+fn get_global_commands_path() -> PathBuf {
+    // Example: Get the directory where the executable is stored
+    let mut path = env::current_exe().expect("Failed to get current executable path");
+    path.pop(); // Remove executable name, keep directory
+    path.push("commands.json"); // Append commands.json to the directory
+    path
 }
