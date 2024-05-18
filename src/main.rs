@@ -1,8 +1,9 @@
 use std::{
     env,
     fs::File,
-    io::{self, BufReader},
+    io::{self, BufReader, Write},
     path::PathBuf,
+    process::Stdio,
 };
 
 use commands::Command;
@@ -105,16 +106,38 @@ fn execute_command(cmd: &str, args: &[&str]) -> io::Result<()> {
 
     println!("Executing command: {}", modified_command);
 
-    let status = std::process::Command::new("sh")
-        .arg("-c")
-        .arg(&modified_command)
-        .status()?;
+    let input_pipe = Stdio::inherit();
+    let output_pipe = Stdio::inherit();
+
+    let child = if cfg!(target_os = "windows") {
+        std::process::Command::new("cmd")
+            .args(["/C", &modified_command])
+            .stderr(Stdio::inherit())
+            .stdin(input_pipe)
+            .stdout(output_pipe)
+            .spawn()?
+    } else {
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg(&modified_command)
+            .stderr(Stdio::inherit())
+            .stdin(input_pipe)
+            .stdout(output_pipe)
+            .spawn()?
+    };
+
+    let output = child.wait_with_output()?;
+
+    let status = output.status;
 
     if !status.success() {
+        io::stderr().write_all(&output.stderr).unwrap();
         return Err(io::Error::new(
             io::ErrorKind::Other,
-            format!("Failed with exit code {} ", status.code().unwrap_or(-1)),
+            format!("Failed with exit code {} ", status.code().unwrap_or(-1),),
         ));
+    } else {
+        io::stdout().write_all(&output.stdout).unwrap();
     }
 
     Ok(())
