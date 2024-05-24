@@ -1,9 +1,9 @@
 [package]
 name = "prkcst"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 license = "MIT"
-keywords = ["cli", "json", "terminal"]
+keywords = ["cli", "json", "terminal", "bin"]
 categories = ["Command line utiities", "Development tools"]
 repository = "https://github.com/prk-Jr/prkcst"
 description = "Command Line Shortcut"
