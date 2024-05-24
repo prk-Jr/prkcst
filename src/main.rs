@@ -77,6 +77,7 @@ fn main() -> io::Result<()> {
 
                 if let Err(e) = execute_command(&cmd, &args_for_command) {
                     eprintln!("Error executing command: {}\nError: {} ", &cmd, &e);
+                    break;
                 }
             }
         }
