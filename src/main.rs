@@ -206,7 +206,7 @@ fn list_commands(global: bool) -> io::Result<()> {
             println!("No local commands available\n");
             return list_commands(true);
         } else {
-            println!("No global commands available");
+            println!("No global commands available\n");
         }
     } else {
         println!(
@@ -219,8 +219,14 @@ fn list_commands(global: bool) -> io::Result<()> {
             println!("Commands:");
             for comd in cmd.commands() {
                 println!("     {}", comd);
-                let comd = comd.replace("{}", "args");
-                println!("E.g. {comd}");
+
+                let count = comd.matches("{}").count();
+                let mut args = String::new();
+                for i in 0..count {
+                    args = format!("{}arg-{} ", args, i);
+                }
+                let command = &format!("prkcst {} {}", cmd.alias(), args);
+                println!("E.g. {command}");
             }
             println!();
             println!();
