@@ -1,6 +1,6 @@
 [package]
 name = "prkcst"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 license = "MIT"
 keywords = ["cli", "json", "terminal", "bin"]

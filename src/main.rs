@@ -36,7 +36,11 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    let commands = fetch_commands_from_file(global_flag)?;
+    let mut commands = fetch_commands_from_file(global_flag)?;
+
+    if !global_flag && commands.is_empty() {
+        commands = fetch_commands_from_file(true)?;
+    }
 
     let alias = &args[1];
 
@@ -198,16 +202,27 @@ fn list_commands(global: bool) -> io::Result<()> {
     let commands = fetch_commands_from_file(global)?;
 
     if commands.is_empty() {
-        println!("No commands available");
+        if !global {
+            println!("No local commands available\n");
+            return list_commands(true);
+        } else {
+            println!("No global commands available");
+        }
     } else {
-        println!("Available commands:\n");
+        println!(
+            "Available {} commands:\n",
+            if global { "global" } else { "local" }
+        );
 
         for cmd in commands {
             println!("Alias: {}", cmd.alias());
             println!("Commands:");
             for comd in cmd.commands() {
-                println!("{}", comd);
+                println!("     {}", comd);
+                let comd = comd.replace("{}", "args");
+                println!("E.g. {comd}");
             }
+            println!();
             println!();
         }
     }
@@ -228,6 +243,10 @@ fn fetch_commands_from_file(global: bool) -> io::Result<Vec<Command>> {
     let file = match File::open(&path) {
         Ok(file) => file,
         Err(_) => {
+            // if !global {
+            //     return fetch_commands_from_file(true);
+            // }
+
             // if global {
             //     File::create(&global_path)?; // Create global file if it doesn't exist
             // } else {
@@ -238,7 +257,11 @@ fn fetch_commands_from_file(global: bool) -> io::Result<Vec<Command>> {
     };
 
     let reader = BufReader::new(file);
-    let commands = serde_json::from_reader(reader)?;
+    let commands: Vec<Command> = serde_json::from_reader(reader)?;
+
+    // if !global && commands.is_empty() {
+    //     return fetch_commands_from_file(true);
+    // }
 
     Ok(commands)
 }
